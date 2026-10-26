@@ -1,0 +1,55 @@
+{{- if .Values.shippingMcp.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: shipping-mcp
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    app: shipping-mcp
+  ports:
+    - name: http
+      port: {{ .Values.shippingMcp.port }}
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipping-mcp
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.shippingMcp.replicas }}
+  selector:
+    matchLabels:
+      app: shipping-mcp
+  template:
+    metadata:
+      labels:
+        app: shipping-mcp
+    spec:
+      containers:
+        - name: shipping-mcp
+          image: {{ .Values.shippingMcp.image | quote }}
+          imagePullPolicy: {{ .Values.shippingMcp.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.shippingMcp.port }}
+          env:
+            - name: SHIPPING_HOST
+              value: "0.0.0.0"
+            - name: SHIPPING_PORT
+              value: {{ .Values.shippingMcp.port | quote }}
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.shippingMcp.resources | nindent 12 }}
+{{- end }}

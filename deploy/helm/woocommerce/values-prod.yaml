@@ -1,0 +1,103 @@
+# Production-like k3s values (same chart). Replace image registry and secrets.
+namespace: urumi
+
+hostAliases: []
+
+wordpress:
+  allowHttpRestAuth: false
+  url: https://store.example.com
+  comingSoon: false
+  replicas: 1
+  storage: 10Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+mariadb:
+  storage: 20Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+postgres:
+  enabled: true
+  storage: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+woocommerceMcp:
+  # Replace with your registry tags in CI/CD.
+  image: registry.example.com/urumi/woocommerce-mcp:1.0.0
+  imagePullPolicy: IfNotPresent
+  storeUrl: http://wordpress
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+inventoryMcp:
+  image: registry.example.com/urumi/inventory-mcp:1.0.0
+  imagePullPolicy: IfNotPresent
+
+shippingMcp:
+  image: registry.example.com/urumi/shipping-mcp:1.0.0
+  imagePullPolicy: IfNotPresent
+
+gateway:
+  image: registry.example.com/urumi/gateway:1.0.0
+  imagePullPolicy: IfNotPresent
+  publicUrl: https://gateway.example.com
+  corsOrigins: "https://dashboard.example.com"
+  authCookieSecure: "true"
+  mcpAuthRequired: "true"
+  woocommerceMcpUrl: http://woocommerce-mcp:8000/mcp
+  inventoryMcpUrl: http://inventory-mcp:8002/mcp
+  shippingMcpUrl: http://shipping-mcp:8003/mcp
+  llm:
+    # Production: set baseUrl to your provider; API key via secret llm-api-key.
+    baseUrl: https://api.openai.com/v1
+    model: gpt-4o-mini
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 1Gi
+
+dashboard:
+  image: registry.example.com/urumi/dashboard:1.0.0
+  imagePullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "16m"
+  hosts:
+    store: store.example.com
+    dashboard: dashboard.example.com
+    gateway: gateway.example.com
+  tls:
+    - secretName: urumi-tls
+      hosts:
+        - store.example.com
+        - dashboard.example.com
+        - gateway.example.com

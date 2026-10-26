@@ -1,0 +1,91 @@
+# Kind / local developer values (same chart as production).
+namespace: urumi
+
+# Reach host Ollama (and other host services) from Kind pods.
+hostAliases:
+  - ip: "172.25.0.1"
+    hostnames:
+      - host.docker.internal
+
+wordpress:
+  allowHttpRestAuth: true
+  # Include the local ingress port-forward port so siteurl/COOKIEHASH stay
+  # stable (cart sessions) and redirects never drop to host Apache :80.
+  url: http://store.urumi.local:8090
+  comingSoon: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+mariadb:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+postgres:
+  enabled: true
+  storage: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 384Mi
+
+woocommerceMcp:
+  image: urumi/woocommerce-mcp:local
+  storeUrl: http://wordpress
+  resources:
+    requests:
+      cpu: 25m
+      memory: 96Mi
+    limits:
+      cpu: 400m
+      memory: 384Mi
+
+inventoryMcp:
+  image: urumi/inventory-mcp:local
+
+shippingMcp:
+  image: urumi/shipping-mcp:local
+
+gateway:
+  image: urumi/gateway:local
+  publicUrl: http://gateway.urumi.local:8090
+  corsOrigins: "http://dashboard.urumi.local:8090,http://gateway.urumi.local:8090,http://127.0.0.1:5173"
+  authCookieSecure: "false"
+  woocommerceMcpUrl: http://woocommerce-mcp:8000/mcp
+  inventoryMcpUrl: http://inventory-mcp:8002/mcp
+  shippingMcpUrl: http://shipping-mcp:8003/mcp
+  llm:
+    baseUrl: http://host.docker.internal:11434/v1
+    model: qwen2.5:1.5b
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 750m
+      memory: 640Mi
+
+dashboard:
+  image: urumi/dashboard:local
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "8m"
+  hosts:
+    store: store.urumi.local
+    dashboard: dashboard.urumi.local
+    gateway: gateway.urumi.local

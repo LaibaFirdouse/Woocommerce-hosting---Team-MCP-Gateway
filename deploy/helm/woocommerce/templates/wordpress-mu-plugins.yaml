@@ -1,0 +1,19 @@
+{{- $restAuth := .Values.wordpress.allowHttpRestAuth }}
+{{- $publicUrl := .Values.wordpress.url }}
+{{- $openStore := not .Values.wordpress.comingSoon }}
+{{- if or $restAuth $publicUrl $openStore }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wordpress-mu-plugins
+  namespace: {{ .Values.namespace }}
+data:
+  {{- if or $publicUrl $openStore }}
+  urumi-public-url.php: |
+{{ .Files.Get "files/mu-plugins/urumi-public-url.php" | indent 4 }}
+  {{- end }}
+  {{- if $restAuth }}
+  urumi-wc-http-rest-auth.php: |
+{{ .Files.Get "files/mu-plugins/urumi-wc-http-rest-auth.php" | indent 4 }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,9 @@
+apiVersion: v2
+name: woocommerce
+description: >
+  Urumi MCP platform — WordPress/WooCommerce store, MariaDB, gateway Postgres,
+  MCP servers, gateway API, and React dashboard. Same chart for Kind (local)
+  and production-like k3s via values-local.yaml / values-prod.yaml.
+type: application
+version: 0.2.0
+appVersion: "1.0"

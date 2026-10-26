@@ -1,0 +1,27 @@
+Urumi MCP platform (Helm)
+
+Local Kind hosts (add to /etc/hosts → 127.0.0.1 for port-forward use):
+  {{ .Values.ingress.hosts.store }}
+  {{ .Values.ingress.hosts.dashboard }}
+  {{ .Values.ingress.hosts.gateway }}
+
+If host :80 is Apache (not Kind), use a local port-forward:
+  kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 8090:80
+  then open http://{{ .Values.ingress.hosts.store }}:8090/
+  (MU plugin keeps redirects on the same host:port; see chart README.)
+
+URLs (add :8090 when using the port-forward above):
+  Store:     http://{{ .Values.ingress.hosts.store }}
+  Dashboard: http://{{ .Values.ingress.hosts.dashboard }}
+  Gateway:   http://{{ .Values.ingress.hosts.gateway }}
+  MCP:       http://{{ .Values.ingress.hosts.gateway }}/mcp
+
+Upstream MCP Services (ClusterIP only — not Ingress):
+  woocommerce-mcp:{{ .Values.woocommerceMcp.port }}
+  inventory-mcp:{{ .Values.inventoryMcp.port }}
+  shipping-mcp:{{ .Values.shippingMcp.port }}
+
+Gateway upstream URLs (in-cluster DNS):
+  {{ .Values.gateway.woocommerceMcpUrl }}
+  {{ .Values.gateway.inventoryMcpUrl }}
+  {{ .Values.gateway.shippingMcpUrl }}

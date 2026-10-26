@@ -1,0 +1,159 @@
+# Shared defaults. Override with values-local.yaml or values-prod.yaml.
+namespace: urumi
+
+# Optional hostAliases (e.g. host.docker.internal → Kind docker bridge).
+hostAliases: []
+
+wordpress:
+  enabled: true
+  image: wordpress:php8.3-apache
+  replicas: 1
+  allowHttpRestAuth: true
+  # Public storefront URL (scheme+host[:port], no path). Forces home/siteurl via MU plugin.
+  # Local Kind port-forward should include the port (e.g. http://store.urumi.local:8090).
+  # Production: https://store.example.com (no local forward port).
+  url: ""
+  # When false, forces woocommerce_coming_soon=no so guest COD checkout works locally.
+  comingSoon: true
+  storage: 2Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+mariadb:
+  enabled: true
+  image: mariadb:11.4
+  storage: 3Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 768Mi
+
+database:
+  name: wordpress
+  user: wordpress
+  secretName: urumi-store-secrets
+
+postgres:
+  enabled: true
+  image: postgres:16
+  storage: 2Gi
+  database: urumi_gateway
+  user: urumi
+  secretName: urumi-gateway-secrets
+  # secret keys: postgres-password
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+woocommerceMcp:
+  enabled: true
+  image: urumi/woocommerce-mcp:local
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 8000
+  # Internal store URL (Kubernetes DNS). Overridden in values files if needed.
+  storeUrl: http://wordpress
+  secretName: urumi-woocommerce-mcp-secrets
+  # secret keys: consumer-key, consumer-secret
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+inventoryMcp:
+  enabled: true
+  image: urumi/inventory-mcp:local
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 8002
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+shippingMcp:
+  enabled: true
+  image: urumi/shipping-mcp:local
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 8003
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+gateway:
+  enabled: true
+  image: urumi/gateway:local
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 8001
+  secretName: urumi-gateway-secrets
+  # secret keys: auth-jwt-secret, postgres-password, llm-api-key (optional)
+  publicUrl: http://gateway.urumi.local
+  corsOrigins: "http://dashboard.urumi.local,http://127.0.0.1:5173"
+  mcpAuthRequired: "true"
+  authCookieSecure: "false"
+  # Upstream MCP URLs — always cluster DNS inside Kubernetes.
+  woocommerceMcpUrl: http://woocommerce-mcp:8000/mcp
+  inventoryMcpUrl: http://inventory-mcp:8002/mcp
+  shippingMcpUrl: http://shipping-mcp:8003/mcp
+  llm:
+    # Local Kind: host Ollama via host.docker.internal (see hostAliases in values-local).
+    # Prod: set to your reachable OpenAI-compatible endpoint; put the key in the secret.
+    baseUrl: http://host.docker.internal:11434/v1
+    model: qwen2.5:1.5b
+  chatMaxToolRounds: "6"
+  chatTimeoutSeconds: "90"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 768Mi
+
+dashboard:
+  enabled: true
+  image: urumi/dashboard:local
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 80
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  hosts:
+    store: store.urumi.local
+    dashboard: dashboard.urumi.local
+    gateway: gateway.urumi.local
+  tls: []

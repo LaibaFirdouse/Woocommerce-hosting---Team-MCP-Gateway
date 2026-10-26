@@ -1,0 +1,119 @@
+{{- if .Values.wordpress.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wordpress-files
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.wordpress.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    app: wordpress
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.wordpress.replicas }}
+  selector:
+    matchLabels:
+      app: wordpress
+  template:
+    metadata:
+      labels:
+        app: wordpress
+      annotations:
+        # Roll pods when MU plugin ConfigMap content changes.
+        checksum/mu-plugins: {{ include (print $.Template.BasePath "/wordpress-mu-plugins.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: wordpress
+          image: {{ .Values.wordpress.image | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: mariadb
+            - name: WORDPRESS_DB_NAME
+              value: {{ .Values.database.name | quote }}
+            - name: WORDPRESS_DB_USER
+              value: {{ .Values.database.user | quote }}
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: db-password
+            {{- if .Values.wordpress.allowHttpRestAuth }}
+            - name: URUMI_WC_ALLOW_HTTP_REST_AUTH
+              value: "1"
+            {{- end }}
+            {{- if .Values.wordpress.url }}
+            - name: URUMI_WP_URL
+              value: {{ .Values.wordpress.url | quote }}
+            {{- end }}
+            {{- if not .Values.wordpress.comingSoon }}
+            - name: URUMI_WP_COMING_SOON
+              value: "0"
+            {{- end }}
+          startupProbe:
+            httpGet:
+              path: /wp-login.php
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+          livenessProbe:
+            httpGet:
+              path: /wp-login.php
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /wp-login.php
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.wordpress.resources | nindent 12 }}
+          volumeMounts:
+            - name: wordpress-files
+              mountPath: /var/www/html
+            {{- if or .Values.wordpress.allowHttpRestAuth .Values.wordpress.url (not .Values.wordpress.comingSoon) }}
+            - name: wordpress-mu-plugins
+              mountPath: /var/www/html/wp-content/mu-plugins
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: wordpress-files
+          persistentVolumeClaim:
+            claimName: wordpress-files
+        {{- if or .Values.wordpress.allowHttpRestAuth .Values.wordpress.url (not .Values.wordpress.comingSoon) }}
+        - name: wordpress-mu-plugins
+          configMap:
+            name: wordpress-mu-plugins
+        {{- end }}
+{{- end }}

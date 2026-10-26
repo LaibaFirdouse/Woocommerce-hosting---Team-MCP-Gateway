@@ -1,0 +1,55 @@
+{{- if .Values.inventoryMcp.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-mcp
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    app: inventory-mcp
+  ports:
+    - name: http
+      port: {{ .Values.inventoryMcp.port }}
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-mcp
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.inventoryMcp.replicas }}
+  selector:
+    matchLabels:
+      app: inventory-mcp
+  template:
+    metadata:
+      labels:
+        app: inventory-mcp
+    spec:
+      containers:
+        - name: inventory-mcp
+          image: {{ .Values.inventoryMcp.image | quote }}
+          imagePullPolicy: {{ .Values.inventoryMcp.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.inventoryMcp.port }}
+          env:
+            - name: INVENTORY_HOST
+              value: "0.0.0.0"
+            - name: INVENTORY_PORT
+              value: {{ .Values.inventoryMcp.port | quote }}
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.inventoryMcp.resources | nindent 12 }}
+{{- end }}

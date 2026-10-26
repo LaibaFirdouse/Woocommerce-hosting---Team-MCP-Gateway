@@ -1,0 +1,67 @@
+{{- if .Values.woocommerceMcp.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: woocommerce-mcp
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    app: woocommerce-mcp
+  ports:
+    - name: http
+      port: {{ .Values.woocommerceMcp.port }}
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: woocommerce-mcp
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.woocommerceMcp.replicas }}
+  selector:
+    matchLabels:
+      app: woocommerce-mcp
+  template:
+    metadata:
+      labels:
+        app: woocommerce-mcp
+    spec:
+      containers:
+        - name: woocommerce-mcp
+          image: {{ .Values.woocommerceMcp.image | quote }}
+          imagePullPolicy: {{ .Values.woocommerceMcp.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.woocommerceMcp.port }}
+          env:
+            - name: WOOCOMMERCE_HOST
+              value: "0.0.0.0"
+            - name: WOOCOMMERCE_PORT
+              value: {{ .Values.woocommerceMcp.port | quote }}
+            - name: WOOCOMMERCE_URL
+              value: {{ .Values.woocommerceMcp.storeUrl | quote }}
+            - name: WOOCOMMERCE_CONSUMER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.woocommerceMcp.secretName }}
+                  key: consumer-key
+            - name: WOOCOMMERCE_CONSUMER_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.woocommerceMcp.secretName }}
+                  key: consumer-secret
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.woocommerceMcp.resources | nindent 12 }}
+{{- end }}
