@@ -1,20 +1,41 @@
-# Bonus / stand-out items
+# Bonus and stand-out items (honest inventory)
 
-Items beyond a minimal “MCP proxy + login” demo, and where to find them in this repo.
+This file maps the assignment’s **optional** bonus and stand-out list to what
+is actually in this repository. It does **not** claim work that was not done.
 
-| Item | Where |
-|------|--------|
-| Full Kind/Helm platform (WP, MariaDB, Postgres, 3 MCPs, gateway, dashboard, Ingress) | `deploy/helm/woocommerce/` |
-| Local vs prod values (TLS annotations, registry images, cookie secure) | `values-local.yaml`, `values-prod.yaml` |
-| Stable storefront URL / cart cookies on port-forward `:8090` (MU plugin) | `files/mu-plugins/urumi-public-url.php` |
-| HTTP WooCommerce REST auth for local (MU plugin) | `files/mu-plugins/urumi-wc-http-rest-auth.php` |
-| Dashboard same-origin nginx proxy (fixes ADMIN badge vs 403 cookie mismatch) | `apps/dashboard/nginx.conf`, `apps/dashboard/Dockerfile` |
-| Post-login `/auth/me` revalidation | `apps/dashboard/src/auth/AuthContext.tsx` |
-| Role-gated chat + MCP tools (`create_product` admin-only) | `apps/gateway/auth/permissions.py`, `apps/gateway/chat/invoke.py` |
-| Admin team management (list/create members, issue/revoke keys for others) | `apps/gateway/admin/users_http.py`, `apps/dashboard/src/pages/AdminTeamSection.tsx` |
-| Audit logs with actor + target metadata for admin key ops | `admin_issue_api_key` / `admin_revoke_api_key` in `users_http.py` |
-| Upstream disable removes tools from discovery without redeploy | `apps/gateway/servers/registry.py`, Admin → Servers UI |
-| Client auth headers / URL overrides stripped before upstream calls | `apps/gateway/chat/invoke.py`, gateway proxy path in `server.py` |
-| Secret redaction in chat/audit error paths | `apps/gateway/audit/service.py`, chat agent sanitization |
-| Grounded chat replies with tool activity surfaced in UI | `apps/gateway/chat/`, `apps/dashboard/src/pages/ChatPage.tsx` |
-| Demo password seed / auth verify scripts (no secrets in git) | `scripts/seed_demo_logins.py`, `scripts/verify_demo_auth.py` |
+## Optional bonus: multi-store provisioning
+
+**Not implemented.**
+
+There is a single WooCommerce store (one WordPress/MariaDB stack). There is no
+dashboard UI to create/delete many stores, no per-store namespaces, no
+per-store Helm releases, no automatic per-store MCP registration with
+store-scoped tool names, no NetworkPolicies between stores, and no
+ResourceQuota / LimitRange / per-user store caps / provisioning controller.
+
+Do not demo “compare orders across two stores” — that path does not exist.
+
+---
+
+## Other ways to stand out
+
+| # | Topic | Status in this repo | Where / notes |
+|---|--------|---------------------|---------------|
+| 1 | Production-like VPS (k3s) | **Partial (docs + values only)** | `deploy/helm/woocommerce/values-prod.yaml`, chart README, root README “VPS / production-like”. Same chart as Kind; TLS annotations for cert-manager are present. **No claim of a live VPS demo in this submission** unless you deploy it separately. |
+| 2 | Tool permissions | **Implemented** | Role-based allow/deny: members get read/status tools; admins get mutations such as `create_product` / `update_order_status`. Restricted tools are **not offered** to member chat and are **rejected** on direct MCP invoke. See `apps/gateway/auth/permissions.py`, `apps/gateway/chat/invoke.py`, `apps/gateway/server.py` (proxy gate), tests in `test_permissions.py` / chat tests. |
+| 3 | OAuth on the gateway | **Not implemented** | Dashboard uses email/password + JWT cookie; external clients use API keys (`uk_*`). |
+| 4 | Handling many tools | **Not implemented** | No meta “search then execute” tool layer; the gateway exposes a modest fixed set of upstream tools. |
+| 5 | Hosted MCP servers (by image) | **Not implemented** | Admins register upstreams by **URL** (`/admin/servers`), not by deploying a container image into the cluster. |
+| 6 | Security hardening | **Partial** | **Yes:** upstream optional `Authorization` headers encrypted at rest (Fernet) — `apps/gateway/servers/credentials.py`. **No:** SSRF allowlist for admin URLs, default-deny NetworkPolicies, non-root securityContexts across workloads, or least-privilege K8s RBAC for a provisioner (there is no provisioner). |
+| 7 | Scaling | **Not implemented** | No demonstrated multi-replica gateway sticky sessions / shared state story; no per-user or per-key rate limits. |
+| 8 | Observability | **Partial** | **Yes:** audit log of tool calls (user, server, tool, duration, outcome) and client-safe upstream error messages. **No:** Prometheus/metrics dashboards or SLOs. |
+| 9 | Upgrades and rollback | **Partial (documented pattern only)** | Standard Helm upgrade/rollback applies to this chart; not a separate runbook with a recorded production rollback demo. |
+
+---
+
+## What graders should treat as the stand-out
+
+The clear, intentional stand-out against the rubric is **#2 Tool permissions**.
+
+Everything else above is either absent or only supporting documentation /
+encryption / audit — not a full bonus or a full stand-out item.

@@ -15,7 +15,7 @@ Authenticated MCP gateway in front of WooCommerce, inventory, and shipping tools
 | Helm chart + local/prod values | `deploy/helm/woocommerce/` |
 | System design & tradeoffs | [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) |
 | Threat model | [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) |
-| Bonus / stand-out list | [docs/BONUS_AND_STANDOUT.md](docs/BONUS_AND_STANDOUT.md) |
+| Bonus / stand-out (honest rubric map) | [docs/BONUS_AND_STANDOUT.md](docs/BONUS_AND_STANDOUT.md) — multi-store **not** done; tool permissions **yes** |
 
 Do not commit secrets. Use `.env.example` files and Kubernetes Secrets (names only in docs).
 
@@ -205,4 +205,4 @@ helm lint deploy/helm/woocommerce -f deploy/helm/woocommerce/values.yaml -f depl
 
 - **Architecture, routing, failure handling, production deltas:** [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md)
 - **Threat model** (shared WC credentials, no client token passthrough, untrusted tool descriptions, cross-member abuse): [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)
-- **Bonus / stand-out features:** [docs/BONUS_AND_STANDOUT.md](docs/BONUS_AND_STANDOUT.md)
+- **Bonus / stand-out (rubric checklist):** [docs/BONUS_AND_STANDOUT.md](docs/BONUS_AND_STANDOUT.md)
